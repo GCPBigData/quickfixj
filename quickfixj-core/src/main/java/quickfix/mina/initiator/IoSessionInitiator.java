@@ -177,6 +177,19 @@ public class IoSessionInitiator {
             }
 
             if (ioConnector != null) {
+                Collection<IoSession> managedIoSessions = ioConnector.getManagedSessions().values();
+                managedIoSessions.forEach((managedIoSession) -> {
+                    try {
+                        CloseFuture closeOnFlush = managedIoSession.closeOnFlush();
+                        boolean await = closeOnFlush.await(500);
+                        if (!await) {
+                            System.err.println("XXX IoSession " + managedIoSession + " could not be closed in 500ms.");
+                        }
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        Logger.getLogger(IoSessionInitiator.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });
                 ioConnector.dispose();
             }
             ioConnector = newConnector;

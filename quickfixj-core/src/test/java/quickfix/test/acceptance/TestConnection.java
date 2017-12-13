@@ -42,6 +42,7 @@ import java.lang.management.ThreadMXBean;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,14 +70,31 @@ public class TestConnection {
 
     public void tearDown() {
         for (IoConnector ioConnector : connectors.values()) {
-            CloseFuture closeFuture = ((TestIoHandler)ioConnector.getHandler()).getSession().closeNow();
-            boolean awaitUninterruptibly = closeFuture.awaitUninterruptibly(2000);
-            if (!awaitUninterruptibly) {
-                System.err.println("XXX could not close session in 2000 ms");
-            }
-            ioConnector.dispose();
-        }
+            Collection<IoSession> managedIoSessions = ioConnector.getManagedSessions().values();
+            managedIoSessions.forEach((managedIoSession) -> {
+                try {
+                    CloseFuture closeOnFlush = managedIoSession.closeOnFlush();
+                    boolean await = closeOnFlush.await(500);
+                    if (!await) {
+                        System.err.println("XXX IoSession " + managedIoSession + " could not be closed in 500ms.");
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    log.warn("interrupted when closing session", ex);
+                }
+            });
         connectors.clear();
+
+        }
+//        for (IoConnector ioConnector : connectors.values()) {
+//            
+//            CloseFuture closeFuture = ((TestIoHandler)ioConnector.getHandler()).getSession().closeNow();
+//            boolean awaitUninterruptibly = closeFuture.awaitUninterruptibly(2000);
+//            if (!awaitUninterruptibly) {
+//                System.err.println("XXX could not close session in 2000 ms");
+//            }
+//            ioConnector.dispose();
+//        }
 
 //        for (TestIoHandler testIoHandler : ioHandlers.values()) {
 //            CloseFuture closeFuture = testIoHandler.getSession().closeNow();
@@ -100,6 +118,19 @@ public class TestConnection {
             throws IOException {
         IoConnector connector = connectors.get(Integer.toString(clientId));
         if (connector != null) {
+            Collection<IoSession> managedIoSessions = connector.getManagedSessions().values();
+            managedIoSessions.forEach((managedIoSession) -> {
+                try {
+                    CloseFuture closeOnFlush = managedIoSession.closeOnFlush();
+                    boolean await = closeOnFlush.await(500);
+                    if (!await) {
+                        System.err.println("XXX IoSession " + managedIoSession + " could not be closed in 500ms.");
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    log.warn("interrupted when closing session", ex);
+                }
+            });
             connector.dispose();
         }
 
