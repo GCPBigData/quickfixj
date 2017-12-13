@@ -906,9 +906,7 @@ public class SSLCertificateTest {
 
         @Override
         public void run() {
-            System.err.println("XXX " + new Date() + " stop " + connector );
             connector.stop();
-            System.err.println("XXX " + new Date() + " stop " + connector + " successful." );
         }
         
     }
